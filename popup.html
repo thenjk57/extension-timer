@@ -9,106 +9,48 @@
 <body>
   <div class="app-container">
     <!-- Header -->
-    <header class="header">
-      <div class="header-content">
-        <div class="header-brand">
-          <div class="header-icon-box">
-            <svg class="header-icon" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/>
-            </svg>
-          </div>
-          <div class="header-text">
-            <h1>Extension Manager</h1>
-            <p>Smart toggles & auto-off timers</p>
-          </div>
-        </div>
-        <span class="pill-badge">Auto-Timer</span>
+    <header class="app-header">
+      <div class="header-left">
+        <svg class="app-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7"></rect>
+          <rect x="14" y="3" width="7" height="7"></rect>
+          <rect x="14" y="14" width="7" height="7"></rect>
+          <circle cx="6.5" cy="17.5" r="3.5"></circle>
+          <polyline points="6.5 15.5 6.5 17.5 8 18.5"></polyline>
+        </svg>
+        <span class="app-title">Extensions</span>
+        <span class="badge" id="total-count">0</span>
+      </div>
+
+      <div class="search-wrapper">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" id="ext-search" placeholder="Search..." autocomplete="off" spellcheck="false">
       </div>
     </header>
 
-    <!-- Active Timers Section -->
-    <section class="section" id="active-timers-section" style="display: none;">
-      <div class="section-header">
-        <span class="section-title">Active Timers</span>
-        <span class="badge-count" id="active-count">0</span>
+    <!-- Active Timers Bar (Only visible when timers run) -->
+    <div id="active-timers-bar" class="active-timers-bar" style="display: none;">
+      <div class="active-timers-header">
+        <span class="active-title">
+          <span class="pulse-dot"></span>
+          Active Timers
+        </span>
       </div>
-      <div id="active-timers-list" class="timer-cards-container">
+      <div id="active-timers-list" class="active-timers-list"></div>
+    </div>
+
+    <!-- Main Extension List -->
+    <main class="extension-list-container">
+      <div id="extensions-list" class="extension-list">
         <!-- Rendered dynamically -->
       </div>
-    </section>
+    </main>
 
-    <!-- Quick Auto-Timer Section (Modern Card) -->
-    <section class="card quick-timer-card">
-      <div class="card-header">
-        <div class="card-title-group">
-          <svg class="card-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <polyline points="12 6 12 12 16 14"></polyline>
-          </svg>
-          <span class="card-title">Temporary Auto-Off</span>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <div class="select-wrapper">
-          <select id="extension-select" class="m3-select">
-            <option value="" disabled selected>Select an extension...</option>
-          </select>
-          <svg class="select-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="6 9 12 15 18 9"></polyline>
-          </svg>
-        </div>
-      </div>
-
-      <div class="timer-controls-row">
-        <div class="preset-chips">
-          <button type="button" class="preset-chip" data-minutes="5">5m</button>
-          <button type="button" class="preset-chip active" data-minutes="15">15m</button>
-          <button type="button" class="preset-chip" data-minutes="30">30m</button>
-          <button type="button" class="preset-chip" data-minutes="60">1h</button>
-        </div>
-
-        <div class="custom-time-box">
-          <input type="number" id="custom-minutes" class="custom-time-input" min="1" max="1440" value="15">
-          <span class="time-unit">m</span>
-        </div>
-      </div>
-
-      <button id="start-btn" class="m3-fab-btn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <polygon points="5 3 19 12 5 21 5 3"></polygon>
-        </svg>
-        <span>Enable with Auto-Off</span>
-      </button>
-
-      <div id="status-msg" class="status-msg"></div>
-    </section>
-
-    <!-- Installed Extensions Section -->
-    <section class="section extensions-section">
-      <div class="section-header">
-        <div class="section-title-wrap">
-          <span class="section-title">Installed</span>
-          <span class="badge-count" id="total-ext-count">0</span>
-        </div>
-        <div class="search-bar">
-          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
-          <input type="text" id="ext-search" placeholder="Search extensions..." class="search-input">
-        </div>
-      </div>
-
-      <div id="all-extensions-list" class="manager-list">
-        <!-- Rendered dynamically -->
-      </div>
-    </section>
-
-    <!-- Footer -->
-    <footer class="footer">
-      <span>Auto-disables extensions to save RAM & battery</span>
-    </footer>
+    <!-- Global status toast -->
+    <div id="status-toast" class="status-toast"></div>
   </div>
 
   <script src="popup.js"></script>

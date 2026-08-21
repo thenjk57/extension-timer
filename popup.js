@@ -1,6 +1,5 @@
 /**
- * Popup Script
- * Handles UI interactions, extension list fetching, manager toggles, search, timer triggers, and live countdowns.
+ * Minimalist, Native Extension Manager Script
  */
 
 let installedExtensions = [];
@@ -13,103 +12,46 @@ document.addEventListener('DOMContentLoaded', async () => {
   startCountdownTicker();
 });
 
-// Setup DOM event listeners
+// Setup event listeners
 function setupEventListeners() {
-  // Preset chips
-  document.querySelectorAll('.preset-chip').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.preset-chip').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      document.getElementById('custom-minutes').value = btn.dataset.minutes;
-    });
-  });
-
-  // Custom minutes input change
-  document.getElementById('custom-minutes').addEventListener('input', (e) => {
-    const val = e.target.value;
-    document.querySelectorAll('.preset-chip').forEach(b => {
-      if (b.dataset.minutes === val) {
-        b.classList.add('active');
-      } else {
-        b.classList.remove('active');
-      }
-    });
-  });
-
-  // Start button
-  document.getElementById('start-btn').addEventListener('click', handleStart);
-
   // Search filter
   document.getElementById('ext-search').addEventListener('input', (e) => {
-    renderManagerList(e.target.value.toLowerCase());
+    renderList(e.target.value.toLowerCase());
   });
 }
 
-// Fetch all installed extensions
+// Fetch installed extensions
 async function loadInstalledExtensions() {
-  const select = document.getElementById('extension-select');
   try {
     const all = await chrome.management.getAll();
-    // Filter out our own extension and themes
     installedExtensions = all
       .filter(ext => ext.type === 'extension' && ext.id !== chrome.runtime.id)
       .sort((a, b) => a.name.localeCompare(b.name));
 
-    document.getElementById('total-ext-count').textContent = installedExtensions.length;
-
-    // Populate dropdown
-    select.innerHTML = '';
-    if (installedExtensions.length === 0) {
-      const opt = document.createElement('option');
-      opt.text = 'No other extensions found';
-      opt.disabled = true;
-      select.appendChild(opt);
-      document.getElementById('start-btn').disabled = true;
-      return;
-    }
-
-    const defaultOpt = document.createElement('option');
-    defaultOpt.value = '';
-    defaultOpt.text = '-- Select an extension --';
-    defaultOpt.disabled = true;
-    defaultOpt.selected = true;
-    select.appendChild(defaultOpt);
-
-    installedExtensions.forEach(ext => {
-      const opt = document.createElement('option');
-      opt.value = ext.id;
-      const status = ext.enabled ? 'Enabled' : 'Disabled';
-      opt.text = `${ext.name} (${status})`;
-      select.appendChild(opt);
-    });
-
-    // Populate the full manager list
-    renderManagerList();
+    document.getElementById('total-count').textContent = installedExtensions.length;
+    renderList();
   } catch (err) {
-    console.error('Error fetching extensions:', err);
-    select.innerHTML = '<option disabled>Failed to load extensions</option>';
+    console.error('Failed to load extensions:', err);
   }
 }
 
-// Render Manager List with toggles
-function renderManagerList(filterText = '') {
-  const listContainer = document.getElementById('all-extensions-list');
-  listContainer.innerHTML = '';
+// Render Extension List
+function renderList(query = '') {
+  const container = document.getElementById('extensions-list');
+  container.innerHTML = '';
 
-  const filtered = installedExtensions.filter(ext => 
-    ext.name.toLowerCase().includes(filterText)
-  );
+  const filtered = installedExtensions.filter(e => e.name.toLowerCase().includes(query));
 
   if (filtered.length === 0) {
-    listContainer.innerHTML = '<div style="font-size: 11px; color: var(--text-secondary); text-align: center; padding: 10px;">No matching extensions</div>';
+    container.innerHTML = `<div class="empty-state">No extensions found</div>`;
     return;
   }
 
   filtered.forEach(ext => {
     const iconUrl = (ext.icons && ext.icons.length > 0) ? ext.icons[0].url : 'icons/icon48.png';
     const hasOptions = Boolean(ext.optionsUrl);
-    
-    // Detect target websites from permissions/hostPermissions
+
+    // Detect target websites
     const hostPermissions = (ext.hostPermissions || []).concat(ext.permissions || []);
     let targetSiteUrl = '';
     let targetSiteName = '';
@@ -124,288 +66,202 @@ function renderManagerList(filterText = '') {
           targetSiteUrl = 'https://www.netflix.com';
           targetSiteName = 'Netflix';
           break;
-        } else if (p.includes('google.com')) {
-          targetSiteUrl = 'https://www.google.com';
-          targetSiteName = 'Google';
-          break;
         } else if (p.startsWith('http://') || p.startsWith('https://')) {
           try {
-            const cleanHost = p.replace('*://', 'https://').replace('/*', '');
-            targetSiteUrl = cleanHost;
-            targetSiteName = new URL(cleanHost).hostname.replace('www.', '');
+            const clean = p.replace('*://', 'https://').replace('/*', '');
+            targetSiteUrl = clean;
+            targetSiteName = new URL(clean).hostname.replace('www.', '');
             break;
           } catch (e) {}
         }
       }
     }
 
-    if (!targetSiteUrl && ext.homepageUrl && ext.homepageUrl.startsWith('http')) {
-      targetSiteUrl = ext.homepageUrl;
-      targetSiteName = 'Homepage';
-    }
+    const row = document.createElement('div');
+    row.className = 'ext-row';
+    row.id = `row-${ext.id}`;
 
-    const wrapper = document.createElement('div');
-    wrapper.className = 'manager-item-wrapper';
-    wrapper.id = `wrapper-${ext.id}`;
-
-    wrapper.innerHTML = `
-      <div class="manager-item clickable" data-id="${ext.id}">
-        <div class="manager-item-left" title="Click to view details & quick actions">
-          <img src="${iconUrl}" class="manager-item-icon" alt="" onerror="this.src='icons/icon48.png'">
-          <span class="manager-item-name">${ext.name}</span>
-          <span class="expand-chevron" id="chevron-${ext.id}">▾</span>
+    row.innerHTML = `
+      <div class="ext-main-bar" data-id="${ext.id}">
+        <div class="ext-info">
+          <img src="${iconUrl}" class="ext-icon" alt="" onerror="this.src='icons/icon48.png'">
+          <div class="ext-name-group">
+            <span class="ext-name" title="${ext.name}">${ext.name}</span>
+            <span class="ext-status-label">${ext.enabled ? 'Enabled' : 'Disabled'}</span>
+          </div>
         </div>
-        <label class="switch">
-          <input type="checkbox" class="toggle-ext-checkbox" data-id="${ext.id}" ${ext.enabled ? 'checked' : ''}>
-          <span class="slider"></span>
-        </label>
+
+        <div class="ext-row-actions">
+          <label class="switch" title="Toggle extension">
+            <input type="checkbox" class="toggle-checkbox" data-id="${ext.id}" ${ext.enabled ? 'checked' : ''}>
+            <span class="slider"></span>
+          </label>
+        </div>
       </div>
 
-      <!-- In-Popup Expandable Drawer -->
-      <div class="manager-drawer" id="drawer-${ext.id}">
-        <div class="drawer-content">
-          <p class="drawer-desc">${ext.description || 'No description provided.'}</p>
-          
-          <div class="drawer-meta">
-            <span class="meta-pill">v${ext.version}</span>
-            ${ext.installType ? `<span class="meta-pill">${ext.installType}</span>` : ''}
-          </div>
+      <!-- Expandable drawer with clean links -->
+      <div class="ext-drawer" id="drawer-${ext.id}">
+        <p class="ext-desc">${ext.description || 'No description provided.'}</p>
+        
+        <!-- Timer inline presets -->
+        <div class="drawer-timer-presets">
+          <span style="font-size: 11px; color: var(--text-muted); margin-right: 2px;">Set Timer:</span>
+          <button class="timer-chip" data-id="${ext.id}" data-min="5">5m</button>
+          <button class="timer-chip" data-id="${ext.id}" data-min="15">15m</button>
+          <button class="timer-chip" data-id="${ext.id}" data-min="30">30m</button>
+          <button class="timer-chip" data-id="${ext.id}" data-min="60">1h</button>
+        </div>
 
-          <div class="drawer-actions">
-            <!-- Quick Timer Presets -->
-            <button class="drawer-btn btn-quick-timer" data-id="${ext.id}" data-min="15">
-              ⏱️ 15m Timer
+        <!-- Links Row -->
+        <div class="drawer-links-row">
+          ${hasOptions ? `
+            <button class="drawer-link btn-options" data-id="${ext.id}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+              Options
             </button>
-            <button class="drawer-btn btn-quick-timer" data-id="${ext.id}" data-min="30">
-              ⏱️ 30m Timer
+          ` : ''}
+
+          ${targetSiteUrl ? `
+            <button class="drawer-link btn-site" data-url="${targetSiteUrl}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+              Open ${targetSiteName}
             </button>
+          ` : ''}
 
-            <!-- Options Page if available -->
-            ${hasOptions ? `
-              <button class="drawer-btn btn-options" data-id="${ext.id}">
-                ⚙️ Options
-              </button>
-            ` : ''}
-
-            <!-- Launch Target Website if detected -->
-            ${targetSiteUrl ? `
-              <button class="drawer-btn btn-launch-site" data-url="${targetSiteUrl}">
-                🌐 Open ${targetSiteName}
-              </button>
-            ` : ''}
-
-            <!-- Web Store Link -->
-            <button class="drawer-btn btn-store" data-id="${ext.id}">
-              🛍️ Store Page
-            </button>
-          </div>
+          <button class="drawer-link btn-store" data-id="${ext.id}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+            Store Page
+          </button>
         </div>
       </div>
     `;
-    listContainer.appendChild(wrapper);
+
+    container.appendChild(row);
   });
 
-  // Attach drawer toggle on row click (excluding switch)
-  listContainer.querySelectorAll('.manager-item-left').forEach(el => {
-    el.addEventListener('click', () => {
-      const parent = el.closest('.manager-item-wrapper');
-      const extId = parent.id.replace('wrapper-', '');
-      const drawer = document.getElementById(`drawer-${extId}`);
-      const chevron = document.getElementById(`chevron-${extId}`);
-      
-      const isOpen = drawer.classList.contains('open');
-      // Close all other open drawers
-      listContainer.querySelectorAll('.manager-drawer').forEach(d => d.classList.remove('open'));
-      listContainer.querySelectorAll('.expand-chevron').forEach(c => c.textContent = '▾');
-      
-      if (!isOpen) {
-        drawer.classList.add('open');
-        chevron.textContent = '▴';
-        setTimeout(() => {
-          parent.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }, 50);
+  // Toggle switch listeners
+  container.querySelectorAll('.toggle-checkbox').forEach(chk => {
+    chk.addEventListener('change', async (e) => {
+      e.stopPropagation();
+      const extId = e.target.dataset.id;
+      const enable = e.target.checked;
+      try {
+        await chrome.management.setEnabled(extId, enable);
+        if (!enable) {
+          await chrome.runtime.sendMessage({ action: 'cancelTimer', data: { extensionId: extId, disableNow: false } });
+        }
+        await loadInstalledExtensions();
+        await refreshActiveTimers();
+      } catch (err) {
+        console.error('Toggle error:', err);
+        e.target.checked = !enable;
       }
     });
   });
 
-  // Attach Drawer action button listeners
-  listContainer.querySelectorAll('.btn-quick-timer').forEach(btn => {
+  // Row expand on click
+  container.querySelectorAll('.ext-main-bar').forEach(bar => {
+    bar.addEventListener('click', (e) => {
+      if (e.target.closest('.switch')) return;
+      const row = bar.closest('.ext-row');
+      const isOpen = row.classList.contains('is-open');
+      
+      container.querySelectorAll('.ext-row').forEach(r => r.classList.remove('is-open'));
+      if (!isOpen) row.classList.add('is-open');
+    });
+  });
+
+  // Drawer action listeners
+  container.querySelectorAll('.timer-chip').forEach(btn => {
     btn.addEventListener('click', async () => {
       const extId = btn.dataset.id;
       const min = parseFloat(btn.dataset.min);
       const ext = installedExtensions.find(e => e.id === extId);
       const iconUrl = (ext?.icons && ext.icons.length > 0) ? ext.icons[0].url : 'icons/icon48.png';
 
-      showStatus(`Setting ${min}m timer...`, '');
       const res = await chrome.runtime.sendMessage({
         action: 'startTimer',
-        data: {
-          extensionId: extId,
-          name: ext?.name || 'Extension',
-          durationMinutes: min,
-          iconUrl
-        }
+        data: { extensionId: extId, name: ext.name, durationMinutes: min, iconUrl }
       });
+
       if (res && res.success) {
-        showStatus(`Timer started for ${min}m!`, 'success');
+        showToast(`Auto-off timer set for ${min}m`);
         await loadInstalledExtensions();
         await refreshActiveTimers();
       }
     });
   });
 
-  listContainer.querySelectorAll('.btn-options').forEach(btn => {
+  container.querySelectorAll('.btn-options').forEach(btn => {
     btn.addEventListener('click', () => {
       const ext = installedExtensions.find(e => e.id === btn.dataset.id);
       if (ext?.optionsUrl) chrome.tabs.create({ url: ext.optionsUrl });
     });
   });
 
-  listContainer.querySelectorAll('.btn-launch-site').forEach(btn => {
+  container.querySelectorAll('.btn-site').forEach(btn => {
     btn.addEventListener('click', () => {
       chrome.tabs.create({ url: btn.dataset.url });
     });
   });
 
-  listContainer.querySelectorAll('.btn-store').forEach(btn => {
+  container.querySelectorAll('.btn-store').forEach(btn => {
     btn.addEventListener('click', () => {
       chrome.tabs.create({ url: `https://chromewebstore.google.com/detail/${btn.dataset.id}` });
     });
   });
-
-  // Attach instant toggle event listeners
-  listContainer.querySelectorAll('.toggle-ext-checkbox').forEach(chk => {
-    chk.addEventListener('change', async (e) => {
-      const extId = e.target.dataset.id;
-      const enable = e.target.checked;
-      try {
-        await chrome.management.setEnabled(extId, enable);
-        // If disabled manually, cancel any active timer on it
-        if (!enable) {
-          await chrome.runtime.sendMessage({
-            action: 'cancelTimer',
-            data: { extensionId: extId, disableNow: false }
-          });
-        }
-        await loadInstalledExtensions();
-        await refreshActiveTimers();
-      } catch (err) {
-        console.error('Toggle failed:', err);
-        e.target.checked = !enable; // revert
-      }
-    });
-  });
 }
 
-// Trigger start timer
-async function handleStart() {
-  const select = document.getElementById('extension-select');
-  const extId = select.value;
-  const minutesInput = document.getElementById('custom-minutes');
-  const minutes = parseFloat(minutesInput.value);
-
-  if (!extId) {
-    showStatus('Please select an extension.', 'error');
-    return;
-  }
-
-  if (isNaN(minutes) || minutes <= 0) {
-    showStatus('Please enter a valid time (> 0 mins).', 'error');
-    return;
-  }
-
-  const ext = installedExtensions.find(e => e.id === extId);
-  const iconUrl = (ext?.icons && ext.icons.length > 0) ? ext.icons[ext.icons.length - 1].url : 'icons/icon48.png';
-
-  showStatus('Starting timer...', '');
-
-  const response = await chrome.runtime.sendMessage({
-    action: 'startTimer',
-    data: {
-      extensionId: extId,
-      name: ext?.name || 'Extension',
-      durationMinutes: minutes,
-      iconUrl
-    }
-  });
-
-  if (response && response.success) {
-    showStatus(`Auto-off timer set for ${minutes} min(s)!`, 'success');
-    await loadInstalledExtensions();
-    await refreshActiveTimers();
-  } else {
-    showStatus(`Failed: ${response?.error || 'Unknown error'}`, 'error');
-  }
-}
-
-// Refresh active timers from storage
+// Active Timers management
 async function refreshActiveTimers() {
   const { activeTimers = {} } = await chrome.storage.local.get('activeTimers');
+  const bar = document.getElementById('active-timers-bar');
+  const list = document.getElementById('active-timers-list');
   const keys = Object.keys(activeTimers);
-  const container = document.getElementById('active-timers-list');
-  const section = document.getElementById('active-timers-section');
-  const countBadge = document.getElementById('active-count');
 
   if (keys.length === 0) {
-    section.style.display = 'none';
+    bar.style.display = 'none';
     return;
   }
 
-  section.style.display = 'flex';
-  countBadge.textContent = keys.length;
-  container.innerHTML = '';
-
+  bar.style.display = 'block';
+  list.innerHTML = '';
   const now = Date.now();
 
   keys.forEach(id => {
     const timer = activeTimers[id];
-    const totalMs = timer.durationMinutes * 60 * 1000;
     const remainingMs = Math.max(0, timer.expiresAt - now);
-    const progressPercent = Math.min(100, Math.max(0, (remainingMs / totalMs) * 100));
 
-    const card = document.createElement('div');
-    card.className = 'timer-card';
-    card.id = `timer-${id}`;
-    card.innerHTML = `
-      <div class="timer-card-header">
-        <div class="timer-ext-info">
-          <img src="${timer.iconUrl}" class="timer-ext-icon" alt="" onerror="this.src='icons/icon48.png'">
-          <span class="timer-ext-name" title="${timer.name}">${timer.name}</span>
-        </div>
-        <div class="timer-countdown" id="cd-${id}">${formatTime(remainingMs)}</div>
+    const item = document.createElement('div');
+    item.className = 'timer-item';
+    item.id = `active-timer-${id}`;
+    item.innerHTML = `
+      <div class="timer-item-left">
+        <img src="${timer.iconUrl}" class="timer-item-icon" alt="" onerror="this.src='icons/icon48.png'">
+        <span class="timer-item-name">${timer.name}</span>
       </div>
-      <div class="timer-progress-track">
-        <div class="timer-progress-fill" id="fill-${id}" style="width: ${progressPercent}%;"></div>
-      </div>
-      <div class="timer-actions">
-        <button class="btn-sm btn-cancel" data-id="${id}" data-action="keep">Keep Enabled</button>
-        <button class="btn-sm btn-stop-now" data-id="${id}" data-action="stop">Turn Off Now</button>
+      <div class="timer-item-right">
+        <span class="timer-time-left" id="time-left-${id}">${formatTime(remainingMs)}</span>
+        <button class="timer-btn-stop" data-id="${id}" title="Turn off now">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
       </div>
     `;
 
-    container.appendChild(card);
+    list.appendChild(item);
   });
 
-  // Attach button listeners
-  container.querySelectorAll('.btn-cancel').forEach(b => {
-    b.addEventListener('click', () => cancelTimer(b.dataset.id, false));
-  });
-  container.querySelectorAll('.btn-stop-now').forEach(b => {
-    b.addEventListener('click', () => cancelTimer(b.dataset.id, true));
+  list.querySelectorAll('.timer-btn-stop').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      await chrome.runtime.sendMessage({ action: 'cancelTimer', data: { extensionId: btn.dataset.id, disableNow: true } });
+      showToast('Extension turned off');
+      await loadInstalledExtensions();
+      await refreshActiveTimers();
+    });
   });
 }
 
-// Cancel / stop timer
-async function cancelTimer(extensionId, disableNow) {
-  await chrome.runtime.sendMessage({
-    action: 'cancelTimer',
-    data: { extensionId, disableNow }
-  });
-  await loadInstalledExtensions();
-  await refreshActiveTimers();
-}
-
-// Countdown timer loop for live ticking
+// Live timer tick
 function startCountdownTicker() {
   if (countdownInterval) clearInterval(countdownInterval);
 
@@ -421,14 +277,8 @@ function startCountdownTicker() {
       if (remainingMs <= 0) {
         hasExpired = true;
       } else {
-        const cdElem = document.getElementById(`cd-${id}`);
-        const fillElem = document.getElementById(`fill-${id}`);
-        if (cdElem) cdElem.textContent = formatTime(remainingMs);
-        if (fillElem) {
-          const totalMs = timer.durationMinutes * 60 * 1000;
-          const percent = Math.min(100, Math.max(0, (remainingMs / totalMs) * 100));
-          fillElem.style.width = `${percent}%`;
-        }
+        const el = document.getElementById(`time-left-${id}`);
+        if (el) el.textContent = formatTime(remainingMs);
       }
     });
 
@@ -439,7 +289,6 @@ function startCountdownTicker() {
   }, 1000);
 }
 
-// Helpers
 function formatTime(ms) {
   const totalSec = Math.floor(ms / 1000);
   const min = Math.floor(totalSec / 60);
@@ -447,13 +296,9 @@ function formatTime(ms) {
   return `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
 }
 
-function showStatus(text, type) {
-  const el = document.getElementById('status-msg');
-  el.textContent = text;
-  el.className = `status-msg ${type}`;
-  if (type === 'success') {
-    setTimeout(() => {
-      if (el.textContent === text) el.textContent = '';
-    }, 3000);
-  }
+function showToast(msg) {
+  const toast = document.getElementById('status-toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2400);
 }
