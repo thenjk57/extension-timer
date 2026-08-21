@@ -21,8 +21,6 @@
 
 body {
   width: 380px;
-  height: 580px;
-  max-height: 580px;
   background-color: var(--bg-main);
   color: var(--text-primary);
   font-family: var(--font-family);
@@ -30,9 +28,8 @@ body {
   line-height: 1.5;
   padding: 14px;
   user-select: none;
+  overflow-x: hidden;
   overflow-y: auto;
-  display: flex;
-  flex-direction: column;
 }
 
 /* Custom scrollbar */
@@ -384,18 +381,6 @@ body::-webkit-scrollbar-thumb {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-height: 240px;
-  overflow-y: auto;
-  padding-right: 4px;
-  padding-bottom: 4px;
-}
-
-.manager-list::-webkit-scrollbar {
-  width: 4px;
-}
-.manager-list::-webkit-scrollbar-thumb {
-  background: var(--border-color);
-  border-radius: 2px;
 }
 
 .manager-item-wrapper {
