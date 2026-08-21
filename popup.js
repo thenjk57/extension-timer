@@ -78,7 +78,7 @@ async function loadInstalledExtensions() {
     installedExtensions.forEach(ext => {
       const opt = document.createElement('option');
       opt.value = ext.id;
-      const status = ext.enabled ? '🟢 Enabled' : '⚪ Disabled';
+      const status = ext.enabled ? 'Enabled' : 'Disabled';
       opt.text = `${ext.name} (${status})`;
       select.appendChild(opt);
     });
