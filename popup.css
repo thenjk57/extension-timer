@@ -404,8 +404,9 @@ body::-webkit-scrollbar-thumb {
   transition: background 0.12s ease;
 }
 
-.manager-item:hover {
+.manager-item.clickable:hover {
   background: #243247;
+  cursor: pointer;
 }
 
 .manager-item-left {
@@ -413,6 +414,16 @@ body::-webkit-scrollbar-thumb {
   align-items: center;
   gap: 8px;
   overflow: hidden;
+  flex: 1;
+}
+
+.options-icon {
+  font-size: 11px;
+  opacity: 0.6;
+  transition: opacity 0.15s ease;
+}
+.manager-item:hover .options-icon {
+  opacity: 1;
 }
 
 .manager-item-icon {

@@ -108,11 +108,15 @@ function renderManagerList(filterText = '') {
   filtered.forEach(ext => {
     const iconUrl = (ext.icons && ext.icons.length > 0) ? ext.icons[0].url : 'icons/icon48.png';
     const item = document.createElement('div');
-    item.className = 'manager-item';
+    const hasOptions = Boolean(ext.optionsUrl);
+    const tooltipText = hasOptions ? `${ext.name} (Click to open Options)` : `${ext.name} (No options page)`;
+
+    item.className = `manager-item ${hasOptions ? 'clickable' : ''}`;
     item.innerHTML = `
-      <div class="manager-item-left">
+      <div class="manager-item-left" title="${tooltipText}">
         <img src="${iconUrl}" class="manager-item-icon" alt="" onerror="this.src='icons/icon48.png'">
-        <span class="manager-item-name" title="${ext.name}">${ext.name}</span>
+        <span class="manager-item-name">${ext.name}</span>
+        ${hasOptions ? '<span class="options-icon" title="Open Options">⚙️</span>' : ''}
       </div>
       <label class="switch">
         <input type="checkbox" class="toggle-ext-checkbox" data-id="${ext.id}" ${ext.enabled ? 'checked' : ''}>
@@ -120,6 +124,20 @@ function renderManagerList(filterText = '') {
       </label>
     `;
     listContainer.appendChild(item);
+  });
+
+  // Attach click listener to open optionsUrl
+  listContainer.querySelectorAll('.manager-item-left').forEach(el => {
+    el.addEventListener('click', (e) => {
+      const checkbox = el.closest('.manager-item').querySelector('.toggle-ext-checkbox');
+      const extId = checkbox.dataset.id;
+      const ext = installedExtensions.find(item => item.id === extId);
+      if (ext && ext.optionsUrl) {
+        chrome.tabs.create({ url: ext.optionsUrl });
+      } else {
+        showStatus('This extension does not have an options page.', 'error');
+      }
+    });
   });
 
   // Attach instant toggle event listeners
