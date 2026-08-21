@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Extension Manager — Auto-Disable & Timer",
   "short_name": "Extension Timer",
-  "version": "1.1.0",
+  "version": "1.0.1",
   "description": "Manage Chrome extensions with smart auto-disable timers to free up memory and speed up your browser.",
   "permissions": [
     "management",
