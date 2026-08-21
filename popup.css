@@ -426,6 +426,17 @@ body::-webkit-scrollbar-thumb {
   opacity: 1;
 }
 
+.details-icon {
+  font-size: 11px;
+  color: var(--text-secondary);
+  opacity: 0.5;
+  transition: all 0.15s ease;
+}
+.manager-item:hover .details-icon {
+  opacity: 1;
+  color: var(--accent);
+}
+
 .manager-item-icon {
   width: 18px;
   height: 18px;

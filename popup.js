@@ -109,14 +109,16 @@ function renderManagerList(filterText = '') {
     const iconUrl = (ext.icons && ext.icons.length > 0) ? ext.icons[0].url : 'icons/icon48.png';
     const item = document.createElement('div');
     const hasOptions = Boolean(ext.optionsUrl);
-    const tooltipText = hasOptions ? `${ext.name} (Click to open Options)` : `${ext.name} (No options page)`;
+    const tooltipText = hasOptions ? `${ext.name} (Click to open Options)` : `${ext.name} (Click to view Details)`;
 
-    item.className = `manager-item ${hasOptions ? 'clickable' : ''}`;
+    item.className = 'manager-item clickable';
     item.innerHTML = `
       <div class="manager-item-left" title="${tooltipText}">
         <img src="${iconUrl}" class="manager-item-icon" alt="" onerror="this.src='icons/icon48.png'">
         <span class="manager-item-name">${ext.name}</span>
-        ${hasOptions ? '<span class="options-icon" title="Open Options">⚙️</span>' : ''}
+        ${hasOptions 
+          ? '<span class="options-icon" title="Open Options">⚙️</span>' 
+          : '<span class="details-icon" title="Open Details">↗</span>'}
       </div>
       <label class="switch">
         <input type="checkbox" class="toggle-ext-checkbox" data-id="${ext.id}" ${ext.enabled ? 'checked' : ''}>
@@ -126,16 +128,19 @@ function renderManagerList(filterText = '') {
     listContainer.appendChild(item);
   });
 
-  // Attach click listener to open optionsUrl
+  // Attach click listener with smart fallback
   listContainer.querySelectorAll('.manager-item-left').forEach(el => {
     el.addEventListener('click', (e) => {
       const checkbox = el.closest('.manager-item').querySelector('.toggle-ext-checkbox');
       const extId = checkbox.dataset.id;
       const ext = installedExtensions.find(item => item.id === extId);
+      
       if (ext && ext.optionsUrl) {
+        // Tier 1: Open extension's dedicated options page
         chrome.tabs.create({ url: ext.optionsUrl });
       } else {
-        showStatus('This extension does not have an options page.', 'error');
+        // Tier 2: Fallback to chrome://extensions/?id=<extId> details page
+        chrome.tabs.create({ url: `chrome://extensions/?id=${extId}` });
       }
     });
   });
