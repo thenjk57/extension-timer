@@ -107,41 +107,166 @@ function renderManagerList(filterText = '') {
 
   filtered.forEach(ext => {
     const iconUrl = (ext.icons && ext.icons.length > 0) ? ext.icons[0].url : 'icons/icon48.png';
-    const item = document.createElement('div');
     const hasOptions = Boolean(ext.optionsUrl);
-    const tooltipText = hasOptions ? `${ext.name} (Click to open Options)` : `${ext.name} (Click to view Details)`;
+    
+    // Detect target websites from permissions/hostPermissions
+    const hostPermissions = (ext.hostPermissions || []).concat(ext.permissions || []);
+    let targetSiteUrl = '';
+    let targetSiteName = '';
 
-    item.className = 'manager-item clickable';
-    item.innerHTML = `
-      <div class="manager-item-left" title="${tooltipText}">
-        <img src="${iconUrl}" class="manager-item-icon" alt="" onerror="this.src='icons/icon48.png'">
-        <span class="manager-item-name">${ext.name}</span>
-        ${hasOptions 
-          ? '<span class="options-icon" title="Open Options">⚙️</span>' 
-          : '<span class="details-icon" title="Open Details">↗</span>'}
+    for (const p of hostPermissions) {
+      if (typeof p === 'string') {
+        if (p.includes('youtube.com')) {
+          targetSiteUrl = 'https://www.youtube.com';
+          targetSiteName = 'YouTube';
+          break;
+        } else if (p.includes('netflix.com')) {
+          targetSiteUrl = 'https://www.netflix.com';
+          targetSiteName = 'Netflix';
+          break;
+        } else if (p.includes('google.com')) {
+          targetSiteUrl = 'https://www.google.com';
+          targetSiteName = 'Google';
+          break;
+        } else if (p.startsWith('http://') || p.startsWith('https://')) {
+          try {
+            const cleanHost = p.replace('*://', 'https://').replace('/*', '');
+            targetSiteUrl = cleanHost;
+            targetSiteName = new URL(cleanHost).hostname.replace('www.', '');
+            break;
+          } catch (e) {}
+        }
+      }
+    }
+
+    if (!targetSiteUrl && ext.homepageUrl && ext.homepageUrl.startsWith('http')) {
+      targetSiteUrl = ext.homepageUrl;
+      targetSiteName = 'Homepage';
+    }
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'manager-item-wrapper';
+    wrapper.id = `wrapper-${ext.id}`;
+
+    wrapper.innerHTML = `
+      <div class="manager-item clickable" data-id="${ext.id}">
+        <div class="manager-item-left" title="Click to view details & quick actions">
+          <img src="${iconUrl}" class="manager-item-icon" alt="" onerror="this.src='icons/icon48.png'">
+          <span class="manager-item-name">${ext.name}</span>
+          <span class="expand-chevron" id="chevron-${ext.id}">▾</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" class="toggle-ext-checkbox" data-id="${ext.id}" ${ext.enabled ? 'checked' : ''}>
+          <span class="slider"></span>
+        </label>
       </div>
-      <label class="switch">
-        <input type="checkbox" class="toggle-ext-checkbox" data-id="${ext.id}" ${ext.enabled ? 'checked' : ''}>
-        <span class="slider"></span>
-      </label>
+
+      <!-- In-Popup Expandable Drawer -->
+      <div class="manager-drawer" id="drawer-${ext.id}">
+        <div class="drawer-content">
+          <p class="drawer-desc">${ext.description || 'No description provided.'}</p>
+          
+          <div class="drawer-meta">
+            <span class="meta-pill">v${ext.version}</span>
+            ${ext.installType ? `<span class="meta-pill">${ext.installType}</span>` : ''}
+          </div>
+
+          <div class="drawer-actions">
+            <!-- Quick Timer Presets -->
+            <button class="drawer-btn btn-quick-timer" data-id="${ext.id}" data-min="15">
+              ⏱️ 15m Timer
+            </button>
+            <button class="drawer-btn btn-quick-timer" data-id="${ext.id}" data-min="30">
+              ⏱️ 30m Timer
+            </button>
+
+            <!-- Options Page if available -->
+            ${hasOptions ? `
+              <button class="drawer-btn btn-options" data-id="${ext.id}">
+                ⚙️ Options
+              </button>
+            ` : ''}
+
+            <!-- Launch Target Website if detected -->
+            ${targetSiteUrl ? `
+              <button class="drawer-btn btn-launch-site" data-url="${targetSiteUrl}">
+                🌐 Open ${targetSiteName}
+              </button>
+            ` : ''}
+
+            <!-- Web Store Link -->
+            <button class="drawer-btn btn-store" data-id="${ext.id}">
+              🛍️ Store Page
+            </button>
+          </div>
+        </div>
+      </div>
     `;
-    listContainer.appendChild(item);
+    listContainer.appendChild(wrapper);
   });
 
-  // Attach click listener with smart fallback
+  // Attach drawer toggle on row click (excluding switch)
   listContainer.querySelectorAll('.manager-item-left').forEach(el => {
-    el.addEventListener('click', (e) => {
-      const checkbox = el.closest('.manager-item').querySelector('.toggle-ext-checkbox');
-      const extId = checkbox.dataset.id;
-      const ext = installedExtensions.find(item => item.id === extId);
+    el.addEventListener('click', () => {
+      const parent = el.closest('.manager-item-wrapper');
+      const extId = parent.id.replace('wrapper-', '');
+      const drawer = document.getElementById(`drawer-${extId}`);
+      const chevron = document.getElementById(`chevron-${extId}`);
       
-      if (ext && ext.optionsUrl) {
-        // Tier 1: Open extension's dedicated options page
-        chrome.tabs.create({ url: ext.optionsUrl });
-      } else {
-        // Tier 2: Fallback to chrome://extensions/?id=<extId> details page
-        chrome.tabs.create({ url: `chrome://extensions/?id=${extId}` });
+      const isOpen = drawer.classList.contains('open');
+      // Close all other open drawers
+      listContainer.querySelectorAll('.manager-drawer').forEach(d => d.classList.remove('open'));
+      listContainer.querySelectorAll('.expand-chevron').forEach(c => c.textContent = '▾');
+      
+      if (!isOpen) {
+        drawer.classList.add('open');
+        chevron.textContent = '▴';
       }
+    });
+  });
+
+  // Attach Drawer action button listeners
+  listContainer.querySelectorAll('.btn-quick-timer').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const extId = btn.dataset.id;
+      const min = parseFloat(btn.dataset.min);
+      const ext = installedExtensions.find(e => e.id === extId);
+      const iconUrl = (ext?.icons && ext.icons.length > 0) ? ext.icons[0].url : 'icons/icon48.png';
+
+      showStatus(`Setting ${min}m timer...`, '');
+      const res = await chrome.runtime.sendMessage({
+        action: 'startTimer',
+        data: {
+          extensionId: extId,
+          name: ext?.name || 'Extension',
+          durationMinutes: min,
+          iconUrl
+        }
+      });
+      if (res && res.success) {
+        showStatus(`Timer started for ${min}m!`, 'success');
+        await loadInstalledExtensions();
+        await refreshActiveTimers();
+      }
+    });
+  });
+
+  listContainer.querySelectorAll('.btn-options').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const ext = installedExtensions.find(e => e.id === btn.dataset.id);
+      if (ext?.optionsUrl) chrome.tabs.create({ url: ext.optionsUrl });
+    });
+  });
+
+  listContainer.querySelectorAll('.btn-launch-site').forEach(btn => {
+    btn.addEventListener('click', () => {
+      chrome.tabs.create({ url: btn.dataset.url });
+    });
+  });
+
+  listContainer.querySelectorAll('.btn-store').forEach(btn => {
+    btn.addEventListener('click', () => {
+      chrome.tabs.create({ url: `https://chromewebstore.google.com/detail/${btn.dataset.id}` });
     });
   });
 
