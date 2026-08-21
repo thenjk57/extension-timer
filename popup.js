@@ -108,11 +108,12 @@ function renderManagerList(filterText = '') {
   filtered.forEach(ext => {
     const iconUrl = (ext.icons && ext.icons.length > 0) ? ext.icons[0].url : 'icons/icon48.png';
     const item = document.createElement('div');
-    item.className = 'manager-item';
+    item.className = 'manager-item clickable';
     item.innerHTML = `
-      <div class="manager-item-left">
+      <div class="manager-item-left" title="Click to view details in chrome://extensions">
         <img src="${iconUrl}" class="manager-item-icon" alt="" onerror="this.src='icons/icon48.png'">
-        <span class="manager-item-name" title="${ext.name}">${ext.name}</span>
+        <span class="manager-item-name">${ext.name}</span>
+        <span class="details-icon" title="View details">↗</span>
       </div>
       <label class="switch">
         <input type="checkbox" class="toggle-ext-checkbox" data-id="${ext.id}" ${ext.enabled ? 'checked' : ''}>
@@ -120,6 +121,15 @@ function renderManagerList(filterText = '') {
       </label>
     `;
     listContainer.appendChild(item);
+  });
+
+  // Attach click listener to open chrome://extensions/?id=<id>
+  listContainer.querySelectorAll('.manager-item-left').forEach(el => {
+    el.addEventListener('click', (e) => {
+      const checkbox = el.closest('.manager-item').querySelector('.toggle-ext-checkbox');
+      const extId = checkbox.dataset.id;
+      chrome.tabs.create({ url: `chrome://extensions/?id=${extId}` });
+    });
   });
 
   // Attach instant toggle event listeners
