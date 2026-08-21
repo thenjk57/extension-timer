@@ -15,10 +15,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Setup DOM event listeners
 function setupEventListeners() {
-  // Preset buttons
-  document.querySelectorAll('.preset-btn').forEach(btn => {
+  // Preset chips
+  document.querySelectorAll('.preset-chip').forEach(btn => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.preset-chip').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       document.getElementById('custom-minutes').value = btn.dataset.minutes;
     });
@@ -27,7 +27,7 @@ function setupEventListeners() {
   // Custom minutes input change
   document.getElementById('custom-minutes').addEventListener('input', (e) => {
     const val = e.target.value;
-    document.querySelectorAll('.preset-btn').forEach(b => {
+    document.querySelectorAll('.preset-chip').forEach(b => {
       if (b.dataset.minutes === val) {
         b.classList.add('active');
       } else {
