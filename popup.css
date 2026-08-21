@@ -20,7 +20,8 @@
 }
 
 body {
-  width: 375px;
+  width: 380px;
+  height: 580px;
   max-height: 580px;
   background-color: var(--bg-main);
   color: var(--text-primary);
@@ -30,6 +31,8 @@ body {
   padding: 14px;
   user-select: none;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Custom scrollbar */
@@ -48,6 +51,7 @@ body::-webkit-scrollbar-thumb {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-height: 100%;
 }
 
 /* Header */
@@ -379,10 +383,11 @@ body::-webkit-scrollbar-thumb {
 .manager-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  max-height: 180px;
+  gap: 6px;
+  max-height: 240px;
   overflow-y: auto;
-  padding-right: 2px;
+  padding-right: 4px;
+  padding-bottom: 4px;
 }
 
 .manager-list::-webkit-scrollbar {

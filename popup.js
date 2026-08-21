@@ -221,6 +221,9 @@ function renderManagerList(filterText = '') {
       if (!isOpen) {
         drawer.classList.add('open');
         chevron.textContent = '▴';
+        setTimeout(() => {
+          parent.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 50);
       }
     });
   });
