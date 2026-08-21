@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Extension Manager</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-top">
+        <div class="header-title">
+          <svg class="header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+            <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+            <rect x="14" y="14" width="7" height="7" rx="1"></rect>
+            <circle cx="6.5" cy="17.5" r="3.5"></circle>
+            <polyline points="6.5 15.5 6.5 17.5 8 18.5"></polyline>
+          </svg>
+          <h1>Extension Manager</h1>
+        </div>
+        <span class="pill-badge">Auto-Timer</span>
+      </div>
+      <div class="header-subtitle">Toggle extensions & auto-disable on timer</div>
+    </header>
+
+    <!-- Active Timers Section -->
+    <section class="section" id="active-timers-section" style="display: none;">
+      <div class="section-title">
+        <span>Active Timers</span>
+        <span class="badge badge-accent" id="active-count">0</span>
+      </div>
+      <div id="active-timers-list" class="timer-cards-container">
+        <!-- Rendered dynamically -->
+      </div>
+    </section>
+
+    <!-- Quick Auto-Timer Section -->
+    <section class="section card">
+      <div class="section-title">
+        <span>⏱️ Temporary Enable (Auto-Off)</span>
+      </div>
+
+      <div class="form-group">
+        <label for="extension-select">Select Extension</label>
+        <div class="custom-select-wrapper">
+          <select id="extension-select" class="form-control">
+            <option value="" disabled selected>Loading installed extensions...</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Duration Before Auto-Disable</label>
+        <div class="preset-buttons">
+          <button type="button" class="preset-btn" data-minutes="5">5m</button>
+          <button type="button" class="preset-btn active" data-minutes="15">15m</button>
+          <button type="button" class="preset-btn" data-minutes="30">30m</button>
+          <button type="button" class="preset-btn" data-minutes="60">1h</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="custom-minutes">Custom Duration</label>
+        <div class="custom-input-group">
+          <input type="number" id="custom-minutes" class="form-control" min="1" max="1440" placeholder="e.g. 25" value="15">
+          <span class="unit">min</span>
+        </div>
+      </div>
+
+      <button id="start-btn" class="primary-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
+        <span>Enable with Auto-Off Timer</span>
+      </button>
+
+      <div id="status-msg" class="status-msg"></div>
+    </section>
+
+    <!-- All Extensions Manager List -->
+    <section class="section">
+      <div class="section-header-row">
+        <div class="section-title">
+          <span>Installed Extensions</span>
+          <span class="badge" id="total-ext-count">0</span>
+        </div>
+        <div class="search-box">
+          <input type="text" id="ext-search" placeholder="Search..." class="search-input">
+        </div>
+      </div>
+
+      <div id="all-extensions-list" class="manager-list">
+        <!-- Rendered dynamically -->
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <span>Auto-disables extensions to save RAM & CPU</span>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

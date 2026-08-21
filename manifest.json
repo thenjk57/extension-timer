@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "Extension Manager — Auto-Disable & Timer",
+  "short_name": "Extension Timer",
+  "version": "1.0.0",
+  "description": "Manage Chrome extensions with smart auto-disable timers to free up memory and speed up your browser.",
+  "permissions": [
+    "management",
+    "alarms",
+    "storage",
+    "notifications"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Extension Timer",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
