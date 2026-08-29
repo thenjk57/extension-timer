@@ -2,11 +2,11 @@
  * Minimalist, Native Extension Manager Script
  */
 
-let installedExtensions = [];
-let countdownInterval = null;
+let currentViewMode = 'list'; // 'list' | 'grid'
 
 document.addEventListener('DOMContentLoaded', async () => {
   setupEventListeners();
+  await initViewMode();
   await loadInstalledExtensions();
   await refreshActiveTimers();
   startCountdownTicker();
@@ -18,6 +18,42 @@ function setupEventListeners() {
   document.getElementById('ext-search').addEventListener('input', (e) => {
     renderList(e.target.value.toLowerCase());
   });
+
+  // View mode toggle
+  document.getElementById('view-toggle-btn').addEventListener('click', toggleViewMode);
+}
+
+// Initialize saved view mode
+async function initViewMode() {
+  const { viewMode = 'list' } = await chrome.storage.local.get('viewMode');
+  currentViewMode = viewMode;
+  applyViewModeUI();
+}
+
+// Toggle and save view mode
+async function toggleViewMode() {
+  currentViewMode = currentViewMode === 'list' ? 'grid' : 'list';
+  await chrome.storage.local.set({ viewMode: currentViewMode });
+  applyViewModeUI();
+}
+
+function applyViewModeUI() {
+  const container = document.getElementById('extensions-list');
+  const btn = document.getElementById('view-toggle-btn');
+  const iconList = btn.querySelector('.icon-list');
+  const iconGrid = btn.querySelector('.icon-grid');
+
+  if (currentViewMode === 'grid') {
+    container.classList.add('grid-view');
+    iconList.style.display = 'none';
+    iconGrid.style.display = 'block';
+    btn.title = 'Switch to List View';
+  } else {
+    container.classList.remove('grid-view');
+    iconList.style.display = 'block';
+    iconGrid.style.display = 'none';
+    btn.title = 'Switch to Grid View';
+  }
 }
 
 // Fetch installed extensions
