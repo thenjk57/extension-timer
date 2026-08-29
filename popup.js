@@ -2,9 +2,9 @@
  * Minimalist, Native Extension Manager Script
  */
 
-window.installedExtensions = [];
-window.countdownInterval = null;
-window.currentViewMode = 'list'; // 'list' | 'grid'
+let installedExtensions = [];
+let countdownInterval = null;
+let currentViewMode = 'list'; // 'list' | 'grid'
 
 document.addEventListener('DOMContentLoaded', async () => {
   setupEventListeners();
@@ -23,6 +23,18 @@ function setupEventListeners() {
 
   // View mode toggle
   document.getElementById('view-toggle-btn').addEventListener('click', toggleViewMode);
+
+  // Live reactivity across tabs/popups and extension state changes
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && changes.activeTimers) {
+      refreshActiveTimers();
+    }
+  });
+
+  chrome.management.onEnabled.addListener(() => loadInstalledExtensions());
+  chrome.management.onDisabled.addListener(() => loadInstalledExtensions());
+  chrome.management.onUninstalled.addListener(() => loadInstalledExtensions());
+  chrome.management.onInstalled.addListener(() => loadInstalledExtensions());
 }
 
 // Initialize saved view mode
