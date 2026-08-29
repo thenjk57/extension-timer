@@ -2,9 +2,9 @@
  * Minimalist, Native Extension Manager Script
  */
 
-let installedExtensions = [];
-let countdownInterval = null;
-let currentViewMode = 'list'; // 'list' | 'grid'
+window.installedExtensions = [];
+window.countdownInterval = null;
+window.currentViewMode = 'list'; // 'list' | 'grid'
 
 document.addEventListener('DOMContentLoaded', async () => {
   setupEventListeners();
