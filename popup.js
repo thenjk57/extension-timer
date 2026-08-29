@@ -50,32 +50,7 @@ function renderList(query = '') {
   filtered.forEach(ext => {
     const iconUrl = (ext.icons && ext.icons.length > 0) ? ext.icons[0].url : 'icons/icon48.png';
     const hasOptions = Boolean(ext.optionsUrl);
-
-    // Detect target websites
-    const hostPermissions = (ext.hostPermissions || []).concat(ext.permissions || []);
-    let targetSiteUrl = '';
-    let targetSiteName = '';
-
-    for (const p of hostPermissions) {
-      if (typeof p === 'string') {
-        if (p.includes('youtube.com')) {
-          targetSiteUrl = 'https://www.youtube.com';
-          targetSiteName = 'YouTube';
-          break;
-        } else if (p.includes('netflix.com')) {
-          targetSiteUrl = 'https://www.netflix.com';
-          targetSiteName = 'Netflix';
-          break;
-        } else if (p.startsWith('http://') || p.startsWith('https://')) {
-          try {
-            const clean = p.replace('*://', 'https://').replace('/*', '');
-            targetSiteUrl = clean;
-            targetSiteName = new URL(clean).hostname.replace('www.', '');
-            break;
-          } catch (e) {}
-        }
-      }
-    }
+    const hasHomepage = Boolean(ext.homepageUrl && ext.homepageUrl.startsWith('http'));
 
     const row = document.createElement('div');
     row.className = 'ext-row';
@@ -121,10 +96,10 @@ function renderList(query = '') {
             </button>
           ` : ''}
 
-          ${targetSiteUrl ? `
-            <button class="drawer-link btn-site" data-url="${targetSiteUrl}">
+          ${hasHomepage ? `
+            <button class="drawer-link btn-homepage" data-url="${ext.homepageUrl}">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
-              Open ${targetSiteName}
+              Homepage
             </button>
           ` : ''}
 
@@ -199,7 +174,7 @@ function renderList(query = '') {
     });
   });
 
-  container.querySelectorAll('.btn-site').forEach(btn => {
+  container.querySelectorAll('.btn-homepage').forEach(btn => {
     btn.addEventListener('click', () => {
       chrome.tabs.create({ url: btn.dataset.url });
     });
