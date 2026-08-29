@@ -556,6 +556,10 @@ input:checked + .slider:before {
   color: var(--accent-light);
 }
 
+.drawer-link.btn-uninstall:hover {
+  color: var(--danger);
+}
+
 .drawer-link svg {
   width: 11px;
   height: 11px;
