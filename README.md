@@ -22,7 +22,7 @@ Users install dozens of extensions (VPNs, developer tools, scrapers, coupon find
 2. Open Google Chrome and navigate to `chrome://extensions/`.
 3. Enable **Developer mode** (top-right corner).
 4. Click **Load unpacked** (top-left corner).
-5. Select this folder: `/Volumes/Disk/Projects/Extension Timer`.
+5. Select the folder you cloned this repository into.
 6. Pin the extension to your toolbar and start managing!
 
 ---
@@ -33,3 +33,5 @@ Users install dozens of extensions (VPNs, developer tools, scrapers, coupon find
 - **`storage`**: Saves your active timers locally on your device.
 - **`notifications`**: Alerts you when an extension has been automatically disabled.
 - **100% Local**: No tracking, no external API requests, zero telemetry.
+
+Full details in [PRIVACY.md](PRIVACY.md).
