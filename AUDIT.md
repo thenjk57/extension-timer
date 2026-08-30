@@ -9,6 +9,71 @@
 
 ---
 
+## Status — all 15 addressed
+
+| Finding | Status | Commit |
+|---------|--------|--------|
+| S-1 — HTML injection from extension names | Fixed | `b7d8ec0` |
+| S-2 — lost updates on `activeTimers` | Fixed | `d315579` |
+| B-1 — `onerror` fallback never runs | Fixed | `b7d8ec0` |
+| B-2 — timers orphaned after reload/update | Fixed | `b08a17e` |
+| B-3 — relative alarm delay | Fixed | `b08a17e` |
+| B-4 — unvalidated duration input | Fixed | `d315579` |
+| B-5 — no hours in `formatTime` | Fixed | `0b1ed03` |
+| B-6 — ticker spins on stuck expiry | Fixed | `b08a17e` |
+| B-7 — undisableable extensions listed | Fixed | `d315579` |
+| B-8 — unhandled `sendMessage` rejections | Fixed | `d315579` |
+| B-9 — unknown actions never respond | Fixed | `d315579` |
+| B-10 — external toggles desync state | Fixed | `d315579` |
+| R-1 — no privacy policy | Drafted — see [PRIVACY.md](PRIVACY.md) | `aed1ccd` |
+| R-2 — hardcoded install path | Fixed | `aed1ccd` |
+| R-3 — no LICENSE | Added — proprietary, WebDevNC | `b5064aa` |
+
+### Carried over
+
+- **`PRIVACY.md` is not publishable as-is.** It contains a `[CONTACT EMAIL]`
+  placeholder, and still needs hosting at a stable URL plus that URL entered in
+  the Web Store dashboard. Permission justification text is in its appendix.
+- **CSP shipped narrower than S-1 proposed.** `manifest.json` declares
+  `script-src 'self'; object-src 'self'`. The proposed
+  `img-src 'self' chrome://extension-icon/` clause was dropped because a CSP
+  value Chrome rejects prevents the extension loading at all, and that could not
+  be verified without a browser. The `safeIconUrl` allowlist in `popup.js`
+  already closes the hole in JS; the clause was defense in depth. Add it once a
+  real load confirms it is accepted.
+- **No fix was verified in a browser.** `node --check` passes on both scripts,
+  `manifest.json` parses, and `formatTime` passes nine boundary cases. Every
+  behavioral check in the fix-order stages below still needs an unpacked load —
+  above all the S-1 test: rename a test extension to
+  `A" ><img src=x onerror=alert(1)>` and confirm it renders as literal text with
+  no CSP violations in the console.
+- **The README's install steps conflict with the proprietary LICENSE.** They
+  invite anyone to clone and load the extension; the licence grants no such
+  right. Fine for internal and client use, worth rewording if the repo is public.
+
+### Scope warning — this audit is against `main`
+
+Findings and fixes both target `main` (`90bef64`). The active development line is
+**`feat/clean-minimal-ui`**, 19 commits ahead, which rebuilt `popup.js` wholesale
+(413 lines changed) along with `popup.html` and `popup.css`.
+
+`background.js` is untouched on that branch, so every background fix here —
+S-2, B-2, B-3, B-9, B-10 — merges into it cleanly.
+
+The popup fixes do not. That branch's rebuilt `popup.js` independently carries:
+
+- **S-1** — `innerHTML` interpolating `ext.name` into a `title="..."` attribute
+  and `iconUrl` into `<img src>`, at its lines 109-114 and 281-284
+- **B-1** — inline `onerror="this.src=..."`, same three places
+- **B-5** — `formatTime` still minutes-only
+- **B-7** — no `mayDisable` filter
+
+Merging `feat/clean-minimal-ui` after this branch will reintroduce all four
+unless the popup fixes are re-applied to the rebuilt code. Re-apply them there
+rather than resolving the conflict in favour of either side wholesale.
+
+---
+
 ## Severity legend
 
 | Level | Meaning |
