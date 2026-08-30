@@ -25,15 +25,16 @@
 | B-8 — unhandled `sendMessage` rejections | Fixed | `d315579` |
 | B-9 — unknown actions never respond | Fixed | `d315579` |
 | B-10 — external toggles desync state | Fixed | `d315579` |
-| R-1 — no privacy policy | Drafted — see [PRIVACY.md](PRIVACY.md) | `aed1ccd` |
+| R-1 — no privacy policy | Written — [PRIVACY.md](PRIVACY.md), needs hosting | `aed1ccd`, `d20b761` |
 | R-2 — hardcoded install path | Fixed | `aed1ccd` |
 | R-3 — no LICENSE | Added — proprietary, WebDevNC | `b5064aa` |
 
 ### Carried over
 
-- **`PRIVACY.md` is not publishable as-is.** It contains a `[CONTACT EMAIL]`
-  placeholder, and still needs hosting at a stable URL plus that URL entered in
-  the Web Store dashboard. Permission justification text is in its appendix.
+- **`PRIVACY.md` still needs hosting.** Contact address is set
+  (support@webdevnc.com). It must be published at a stable public URL and that
+  URL entered in the Web Store dashboard before review will pass. Permission
+  justification text is in its appendix, ready to paste.
 - **CSP shipped narrower than S-1 proposed.** `manifest.json` declares
   `script-src 'self'; object-src 'self'`. The proposed
   `img-src 'self' chrome://extension-icon/` clause was dropped because a CSP
