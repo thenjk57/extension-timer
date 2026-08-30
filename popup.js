@@ -53,8 +53,11 @@ async function loadInstalledExtensions() {
   try {
     const all = await chrome.management.getAll();
     // Filter out our own extension and themes
+    // mayDisable is false for policy-forced and Chrome component extensions.
+    // Offering them as timer targets only produces a raw Chrome exception on
+    // click and inflates the installed count with things we cannot manage.
     installedExtensions = all
-      .filter(ext => ext.type === 'extension' && ext.id !== chrome.runtime.id)
+      .filter(ext => ext.type === 'extension' && ext.id !== chrome.runtime.id && ext.mayDisable)
       .sort((a, b) => a.name.localeCompare(b.name));
 
     document.getElementById('total-ext-count').textContent = installedExtensions.length;
@@ -147,13 +150,10 @@ function renderManagerList(filterText = '') {
       const enable = e.target.checked;
       try {
         await chrome.management.setEnabled(extId, enable);
-        // If disabled manually, cancel any active timer on it
-        if (!enable) {
-          await chrome.runtime.sendMessage({
-            action: 'cancelTimer',
-            data: { extensionId: extId, disableNow: false }
-          });
-        }
+        // No cancelTimer message needed: the background's management.onDisabled
+        // listener drops the timer, however the extension was disabled. Sending
+        // one here also meant a failed message reverted a toggle that had
+        // already succeeded.
         await loadInstalledExtensions();
         await refreshActiveTimers();
       } catch (err) {
@@ -169,15 +169,21 @@ async function handleStart() {
   const select = document.getElementById('extension-select');
   const extId = select.value;
   const minutesInput = document.getElementById('custom-minutes');
-  const minutes = parseFloat(minutesInput.value);
+  const raw = parseFloat(minutesInput.value);
+  // The min/max attributes on the input are decorative -- it is not inside a
+  // form and nothing calls checkValidity() -- so enforce the same bounds here.
+  // Round too: Chrome clamps sub-minute alarm delays, so a fractional value
+  // produced a countdown that disagreed with when the extension actually shut
+  // off.
+  const minutes = Math.round(raw);
 
   if (!extId) {
     showStatus('Please select an extension.', 'error');
     return;
   }
 
-  if (isNaN(minutes) || minutes <= 0) {
-    showStatus('Please enter a valid time (> 0 mins).', 'error');
+  if (!Number.isFinite(raw) || minutes < 1 || minutes > 1440) {
+    showStatus('Enter a duration between 1 and 1440 minutes.', 'error');
     return;
   }
 
@@ -187,15 +193,25 @@ async function handleStart() {
 
   showStatus('Starting timer...', '');
 
-  const response = await chrome.runtime.sendMessage({
-    action: 'startTimer',
-    data: {
-      extensionId: extId,
-      name: ext?.name || 'Extension',
-      durationMinutes: minutes,
-      iconUrl
-    }
-  });
+  let response;
+  try {
+    response = await chrome.runtime.sendMessage({
+      action: 'startTimer',
+      data: {
+        extensionId: extId,
+        name: ext?.name || 'Extension',
+        durationMinutes: minutes,
+        iconUrl
+      }
+    });
+  } catch (err) {
+    // sendMessage rejects (it does not resolve falsy) when the service worker
+    // is evicted or still starting, which is routine under MV3. Unhandled, the
+    // status stayed frozen on "Starting timer..." with no signal to the user.
+    console.error('startTimer message failed:', err);
+    showStatus('Background service unavailable — try again.', 'error');
+    return;
+  }
 
   if (response && response.success) {
     showStatus(`Auto-off timer set for ${minutes} min(s)!`, 'success');
@@ -299,10 +315,16 @@ async function refreshActiveTimers() {
 
 // Cancel / stop timer
 async function cancelTimer(extensionId, disableNow) {
-  await chrome.runtime.sendMessage({
-    action: 'cancelTimer',
-    data: { extensionId, disableNow }
-  });
+  try {
+    await chrome.runtime.sendMessage({
+      action: 'cancelTimer',
+      data: { extensionId, disableNow }
+    });
+  } catch (err) {
+    console.error('cancelTimer message failed:', err);
+    showStatus('Background service unavailable — try again.', 'error');
+    return;
+  }
   await loadInstalledExtensions();
   await refreshActiveTimers();
 }
