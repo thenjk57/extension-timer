@@ -408,11 +408,17 @@ function buildIcon(className, url) {
   return img;
 }
 
+// Minutes roll into hours past 60. Without this the shipped 1h preset read
+// "60:00" and the 1440 maximum read "1440:00", which a two-digit MM:SS field
+// gives no way to parse.
 function formatTime(ms) {
   const totalSec = Math.floor(ms / 1000);
-  const min = Math.floor(totalSec / 60);
+  const hrs = Math.floor(totalSec / 3600);
+  const min = Math.floor((totalSec % 3600) / 60);
   const sec = totalSec % 60;
-  return `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+  const mm = String(min).padStart(2, '0');
+  const ss = String(sec).padStart(2, '0');
+  return hrs > 0 ? `${hrs}:${mm}:${ss}` : `${mm}:${ss}`;
 }
 
 function showStatus(text, type) {
