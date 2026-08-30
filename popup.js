@@ -5,6 +5,8 @@
 
 let installedExtensions = [];
 let countdownInterval = null;
+// Extension IDs whose expiry the ticker has already reacted to.
+const expiryHandled = new Set();
 
 document.addEventListener('DOMContentLoaded', async () => {
   setupEventListeners();
@@ -263,12 +265,23 @@ function startCountdownTicker() {
     const now = Date.now();
     let hasExpired = false;
 
+    // Forget IDs the background has since cleared, so a re-armed timer on the
+    // same extension can latch again.
+    for (const id of expiryHandled) {
+      if (!activeTimers[id]) expiryHandled.delete(id);
+    }
+
     Object.keys(activeTimers).forEach(id => {
       const timer = activeTimers[id];
       const remainingMs = timer.expiresAt - now;
 
       if (remainingMs <= 0) {
-        hasExpired = true;
+        // Refresh once per expiry. Without this latch, a timer the background
+        // fails to clear re-renders the whole popup every second, forever.
+        if (!expiryHandled.has(id)) {
+          expiryHandled.add(id);
+          hasExpired = true;
+        }
       } else {
         const cdElem = document.getElementById(`cd-${id}`);
         const fillElem = document.getElementById(`fill-${id}`);

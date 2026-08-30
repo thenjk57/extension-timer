@@ -72,11 +72,12 @@ async function handleStartTimer({ extensionId, name, durationMinutes, iconUrl })
     const durationMs = durationMinutes * 60 * 1000;
     const expiresAt = now + durationMs;
 
-    // 2. Set Chrome alarm
+    // 2. Set Chrome alarm.
+    // Use an absolute `when` rather than a relative delay so the alarm and the
+    // stored record share one clock, and so the alarm can be recreated verbatim
+    // if Chrome wipes it on update/reload (see reconcileTimers).
     const alarmName = `${ALARM_PREFIX}${extensionId}`;
-    await chrome.alarms.create(alarmName, {
-      delayInMinutes: durationMinutes
-    });
+    await chrome.alarms.create(alarmName, { when: expiresAt });
 
     // 3. Save to activeTimers storage
     const { activeTimers = {} } = await chrome.storage.local.get('activeTimers');
@@ -120,6 +121,48 @@ async function handleCancelTimer({ extensionId, disableNow = false }) {
   }
 }
 
-// Ensure badge on startup/install
-chrome.runtime.onStartup.addListener(updateBadge);
-chrome.runtime.onInstalled.addListener(updateBadge);
+/**
+ * Reconcile stored timers against Chrome's alarm registry.
+ *
+ * Chrome clears an extension's alarms on update/reload, but chrome.storage
+ * survives. Without this, every auto-update leaves timers that count down in the
+ * UI, keep the badge lit, and never actually disable anything.
+ *
+ * Overdue timers are honored immediately; live ones get their alarm restored.
+ */
+async function reconcileTimers() {
+  const { activeTimers = {} } = await chrome.storage.local.get('activeTimers');
+  const now = Date.now();
+  let dirty = false;
+
+  for (const [id, timer] of Object.entries(activeTimers)) {
+    if (!timer || typeof timer.expiresAt !== 'number') {
+      // Malformed record — drop it rather than leaving an unreachable entry.
+      delete activeTimers[id];
+      dirty = true;
+      continue;
+    }
+
+    if (timer.expiresAt <= now) {
+      // Expired while we were not running.
+      await chrome.alarms.clear(`${ALARM_PREFIX}${id}`);
+      try {
+        await chrome.management.setEnabled(id, false);
+      } catch (err) {
+        console.error(`Failed to disable overdue extension ${id}:`, err);
+      }
+      delete activeTimers[id];
+      dirty = true;
+    } else if (!(await chrome.alarms.get(`${ALARM_PREFIX}${id}`))) {
+      // Still live, but the alarm was wiped by an update/reload. Restore it.
+      await chrome.alarms.create(`${ALARM_PREFIX}${id}`, { when: timer.expiresAt });
+    }
+  }
+
+  if (dirty) await chrome.storage.local.set({ activeTimers });
+  await updateBadge();
+}
+
+// Restore timer state and badge on startup/install
+chrome.runtime.onStartup.addListener(reconcileTimers);
+chrome.runtime.onInstalled.addListener(reconcileTimers);
