@@ -35,3 +35,7 @@ Users install dozens of extensions (VPNs, developer tools, scrapers, coupon find
 - **100% Local**: No tracking, no external API requests, zero telemetry.
 
 Full details in [PRIVACY.md](PRIVACY.md).
+
+## License
+
+Copyright (c) 2026 WebDevNC. All rights reserved. Proprietary — see [LICENSE](LICENSE).
