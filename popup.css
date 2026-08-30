@@ -290,18 +290,22 @@ body::-webkit-scrollbar-thumb {
 
 /* Extension Main List */
 .extension-list-container {
-  padding: 6px 12px;
+  padding: 6px 14px 10px;
 }
 
 .extension-list {
   display: flex;
   flex-direction: column;
+  gap: 2px;
 }
 
 /* ================= GRID VIEW ================= */
 .extension-list.grid-view {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  /* minmax(0, 1fr), not 1fr: a bare 1fr floors at min-content, so a long
+     extension name pushed both columns wider than the popup and the overflow
+     was clipped off the right edge. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -310,7 +314,7 @@ body::-webkit-scrollbar-thumb {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: 10px;
-  border-bottom: 1px solid var(--border-subtle);
+  overflow: hidden;
   transition: all 0.15s ease;
 }
 
@@ -371,7 +375,7 @@ body::-webkit-scrollbar-thumb {
 .ext-row {
   display: flex;
   flex-direction: column;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: var(--radius-sm);
   transition: background 0.12s ease;
 }
 
@@ -387,8 +391,9 @@ body::-webkit-scrollbar-thumb {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
+  padding: 10px 12px;
   cursor: pointer;
+  min-width: 0;
 }
 
 .ext-info {
@@ -397,6 +402,7 @@ body::-webkit-scrollbar-thumb {
   gap: 12px;
   overflow: hidden;
   flex: 1;
+  min-width: 0;
 }
 
 .ext-icon {
@@ -410,6 +416,7 @@ body::-webkit-scrollbar-thumb {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-width: 0;
 }
 
 .ext-name {
