@@ -2,10 +2,10 @@
 
 **Last updated:** 2026-08-30
 
-> **Before publishing:** replace `[CONTACT EMAIL]` below, host this page at a
-> stable public URL, and enter that URL in the Chrome Web Store Developer
-> Dashboard under **Privacy practices → Privacy policy URL**. The `management`
-> permission is classified as sensitive, so review will not pass without it.
+> **Before publishing:** host this page at a stable public URL, and enter that
+> URL in the Chrome Web Store Developer Dashboard under **Privacy practices →
+> Privacy policy URL**. The `management` permission is classified as sensitive,
+> so review will not pass without it.
 
 ---
 
@@ -70,7 +70,7 @@ above and in the extension's Web Store listing.
 
 ## Contact
 
-[CONTACT EMAIL]
+support@webdevnc.com
 
 ---
 
