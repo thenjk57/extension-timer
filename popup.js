@@ -108,19 +108,35 @@ function renderManagerList(filterText = '') {
   }
 
   filtered.forEach(ext => {
-    const iconUrl = (ext.icons && ext.icons.length > 0) ? ext.icons[0].url : 'icons/icon48.png';
     const item = document.createElement('div');
     item.className = 'manager-item';
-    item.innerHTML = `
-      <div class="manager-item-left">
-        <img src="${iconUrl}" class="manager-item-icon" alt="" onerror="this.src='icons/icon48.png'">
-        <span class="manager-item-name" title="${ext.name}">${ext.name}</span>
-      </div>
-      <label class="switch">
-        <input type="checkbox" class="toggle-ext-checkbox" data-id="${ext.id}" ${ext.enabled ? 'checked' : ''}>
-        <span class="slider"></span>
-      </label>
-    `;
+
+    const left = document.createElement('div');
+    left.className = 'manager-item-left';
+
+    const icon = buildIcon('manager-item-icon', ext.icons?.[0]?.url);
+
+    const name = document.createElement('span');
+    name.className = 'manager-item-name';
+    name.textContent = ext.name;
+    name.title = ext.name;
+
+    left.append(icon, name);
+
+    const label = document.createElement('label');
+    label.className = 'switch';
+
+    const chk = document.createElement('input');
+    chk.type = 'checkbox';
+    chk.className = 'toggle-ext-checkbox';
+    chk.dataset.id = ext.id;
+    chk.checked = ext.enabled;
+
+    const slider = document.createElement('span');
+    slider.className = 'slider';
+
+    label.append(chk, slider);
+    item.append(left, label);
     listContainer.appendChild(item);
   });
 
@@ -166,7 +182,8 @@ async function handleStart() {
   }
 
   const ext = installedExtensions.find(e => e.id === extId);
-  const iconUrl = (ext?.icons && ext.icons.length > 0) ? ext.icons[ext.icons.length - 1].url : 'icons/icon48.png';
+  // Sanitize before it reaches storage, so a hostile URL is never persisted.
+  const iconUrl = safeIconUrl(ext?.icons?.[ext.icons.length - 1]?.url);
 
   showStatus('Starting timer...', '');
 
@@ -217,22 +234,56 @@ async function refreshActiveTimers() {
     const card = document.createElement('div');
     card.className = 'timer-card';
     card.id = `timer-${id}`;
-    card.innerHTML = `
-      <div class="timer-card-header">
-        <div class="timer-ext-info">
-          <img src="${timer.iconUrl}" class="timer-ext-icon" alt="" onerror="this.src='icons/icon48.png'">
-          <span class="timer-ext-name" title="${timer.name}">${timer.name}</span>
-        </div>
-        <div class="timer-countdown" id="cd-${id}">${formatTime(remainingMs)}</div>
-      </div>
-      <div class="timer-progress-track">
-        <div class="timer-progress-fill" id="fill-${id}" style="width: ${progressPercent}%;"></div>
-      </div>
-      <div class="timer-actions">
-        <button class="btn-sm btn-cancel" data-id="${id}" data-action="keep">Keep Enabled</button>
-        <button class="btn-sm btn-stop-now" data-id="${id}" data-action="stop">Turn Off Now</button>
-      </div>
-    `;
+
+    const header = document.createElement('div');
+    header.className = 'timer-card-header';
+
+    const info = document.createElement('div');
+    info.className = 'timer-ext-info';
+
+    const icon = buildIcon('timer-ext-icon', timer.iconUrl);
+
+    const name = document.createElement('span');
+    name.className = 'timer-ext-name';
+    name.textContent = timer.name;
+    name.title = timer.name;
+
+    info.append(icon, name);
+
+    const countdown = document.createElement('div');
+    countdown.className = 'timer-countdown';
+    countdown.id = `cd-${id}`;
+    countdown.textContent = formatTime(remainingMs);
+
+    header.append(info, countdown);
+
+    const track = document.createElement('div');
+    track.className = 'timer-progress-track';
+
+    const fill = document.createElement('div');
+    fill.className = 'timer-progress-fill';
+    fill.id = `fill-${id}`;
+    fill.style.width = `${progressPercent}%`;
+
+    track.appendChild(fill);
+
+    const actions = document.createElement('div');
+    actions.className = 'timer-actions';
+
+    const keepBtn = document.createElement('button');
+    keepBtn.className = 'btn-sm btn-cancel';
+    keepBtn.dataset.id = id;
+    keepBtn.dataset.action = 'keep';
+    keepBtn.textContent = 'Keep Enabled';
+
+    const stopBtn = document.createElement('button');
+    stopBtn.className = 'btn-sm btn-stop-now';
+    stopBtn.dataset.id = id;
+    stopBtn.dataset.action = 'stop';
+    stopBtn.textContent = 'Turn Off Now';
+
+    actions.append(keepBtn, stopBtn);
+    card.append(header, track, actions);
 
     container.appendChild(card);
   });
@@ -302,6 +353,39 @@ function startCountdownTicker() {
 }
 
 // Helpers
+
+const DEFAULT_ICON = 'icons/icon48.png';
+
+/**
+ * Extension names and icon URLs come from other installed extensions via
+ * chrome.management, so they are attacker-controlled: any extension picks its
+ * own manifest `name`. Names are therefore only ever assigned through
+ * textContent / .title, never parsed as markup.
+ *
+ * Icon URLs are additionally restricted by scheme. Chrome hands back
+ * chrome://extension-icon/ URLs; anything else would let a crafted manifest
+ * point <img src> at a remote host, turning every popup open into an outbound
+ * request that leaks usage timing.
+ */
+function safeIconUrl(url) {
+  return (typeof url === 'string' && url.startsWith('chrome://extension-icon/'))
+    ? url
+    : DEFAULT_ICON;
+}
+
+// Build an <img> with a working error fallback. An inline onerror= attribute
+// is silently blocked by the extension CSP, so the handler is attached here.
+function buildIcon(className, url) {
+  const img = document.createElement('img');
+  img.className = className;
+  img.alt = '';
+  img.addEventListener('error', () => {
+    if (!img.src.endsWith(DEFAULT_ICON)) img.src = DEFAULT_ICON;
+  });
+  img.src = safeIconUrl(url);
+  return img;
+}
+
 function formatTime(ms) {
   const totalSec = Math.floor(ms / 1000);
   const min = Math.floor(totalSec / 60);
