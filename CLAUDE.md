@@ -50,9 +50,12 @@ Each cost a fix; `AUDIT.md` has the full reasoning.
 
 ## Branch state (2026-08-30)
 
-`main` carries the audit fixes. `feat/clean-minimal-ui` is the active UI line and
-rebuilt `popup.js` from an older base — it independently reintroduces the
-injection sink, the dead `onerror`, minutes-only `formatTime`, and the missing
-`mayDisable` filter. Re-apply the popup fixes onto the rebuilt code when merging
-it; do not resolve that conflict wholesale in either direction. `background.js`
-is untouched there and merges cleanly.
+`main` carries the audit fixes and the merged UI rebuild (`feat/clean-minimal-ui`,
+merged in `e124e57`). The popup is the rebuilt row/drawer UI with the audit's
+fixes re-applied on top.
+
+The other open branches — `feat/in-popup-details`, `feat/open-details-page`,
+`feat/open-options-page` — all predate both. They contain older `popup.js`
+revisions that will reintroduce the injection sink and the dead `onerror` if
+merged as-is. Re-apply the invariants above to any popup code coming from them
+rather than resolving a conflict wholesale in either direction.

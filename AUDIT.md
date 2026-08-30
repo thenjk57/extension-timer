@@ -51,26 +51,27 @@
   invite anyone to clone and load the extension; the licence grants no such
   right. Fine for internal and client use, worth rewording if the repo is public.
 
-### Scope warning — this audit is against `main`
+### Branch integration — resolved
 
-Findings and fixes both target `main` (`90bef64`). The active development line is
-**`feat/clean-minimal-ui`**, 19 commits ahead, which rebuilt `popup.js` wholesale
-(413 lines changed) along with `popup.html` and `popup.css`.
+The audit targeted `main` (`90bef64`). The UI line **`feat/clean-minimal-ui`**
+had branched before it and rebuilt `popup.js` wholesale (28% similar to the
+audited file), independently carrying **S-1**, **B-1**, **B-5** and **B-7**.
 
-`background.js` is untouched on that branch, so every background fix here —
-S-2, B-2, B-3, B-9, B-10 — merges into it cleanly.
+That branch is now merged (`e124e57`). `popup.js` was resolved by keeping the
+new UI in full and re-applying the four fixes to it; `background.js` was
+untouched on the branch so all background fixes survive unchanged, and
+`popup.html` / `popup.css` came across whole.
 
-The popup fixes do not. That branch's rebuilt `popup.js` independently carries:
+Two further defects in the rebuilt code were fixed in the same merge:
 
-- **S-1** — `innerHTML` interpolating `ext.name` into a `title="..."` attribute
-  and `iconUrl` into `<img src>`, at its lines 109-114 and 281-284
-- **B-1** — inline `onerror="this.src=..."`, same three places
-- **B-5** — `formatTime` still minutes-only
-- **B-7** — no `mayDisable` filter
+- `homepageUrl`, supplied by another extension's manifest, was passed to
+  `chrome.tabs.create` behind a `startsWith('http')` test that a scheme such as
+  `httpfoo:` satisfies. Now an anchored `https?://` check.
+- The drawer's timer chips called `sendMessage` with no rejection handler and
+  gave no feedback when a start failed.
 
-Merging `feat/clean-minimal-ui` after this branch will reintroduce all four
-unless the popup fixes are re-applied to the rebuilt code. Re-apply them there
-rather than resolving the conflict in favour of either side wholesale.
+`B-4` no longer applies to the shipped UI: the free-text duration field is gone,
+replaced by fixed 5/15/30/60 chips, which are still range-checked before use.
 
 ---
 
